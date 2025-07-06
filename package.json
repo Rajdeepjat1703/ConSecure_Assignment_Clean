@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "react-select": "^5.10.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3"
+  }
+}
