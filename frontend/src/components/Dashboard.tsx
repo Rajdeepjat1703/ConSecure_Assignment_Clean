@@ -1,12 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Shield, AlertTriangle, TrendingUp, Target } from 'lucide-react';
 import { threatApi } from '../services/api';
 import { ThreatStats } from '../types/threat';
+import { io as socketIOClient } from 'socket.io-client';
 
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<ThreatStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [analysisInput, setAnalysisInput] = useState('');
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [activityFeed, setActivityFeed] = useState<{description: string, predicted_category: string, timestamp: string}[]>([]);
+  const socketRef = useRef<any>(null);
+
+  // Load feed from localStorage on mount
+  useEffect(() => {
+    const savedFeed = localStorage.getItem('activityFeed');
+    if (savedFeed) setActivityFeed(JSON.parse(savedFeed));
+    socketRef.current = socketIOClient('http://localhost:5000');
+    socketRef.current.on('analysis', (data: any) => {
+      setActivityFeed(feed => {
+        const updated = [data, ...feed.slice(0, 19)];
+        localStorage.setItem('activityFeed', JSON.stringify(updated));
+        return updated;
+      });
+    });
+    return () => {
+      socketRef.current.disconnect();
+    };
+  }, []);
+
+  // Save feed to localStorage whenever it changes (for manual updates)
+  useEffect(() => {
+    localStorage.setItem('activityFeed', JSON.stringify(activityFeed));
+  }, [activityFeed]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -56,13 +86,113 @@ const Dashboard: React.FC = () => {
     return 'text-green-600 bg-green-50';
   };
 
+  const handleAnalyze = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    setAnalysisResult(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/threats/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ description: analysisInput })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAnalysisResult(data.predicted_category);
+      } else {
+        setAnalysisError(data.error || 'Prediction failed');
+      }
+    } catch (err) {
+      setAnalysisError('Prediction failed');
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setAnalysisInput('');
+    setAnalysisResult(null);
+    setAnalysisError(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Threat Dashboard</h1>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          Last updated: {new Date().toLocaleString()}
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Last updated: {new Date().toLocaleString()}
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => setModalOpen(true)}
+          >
+            Analyze Threat
+          </button>
         </div>
+      </div>
+
+      {/* Modal Dialog for Analysis */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              onClick={closeModal}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Threat Description Analysis</h3>
+            <form onSubmit={handleAnalyze} className="space-y-4">
+              <textarea
+                className="w-full p-2 border rounded"
+                rows={3}
+                placeholder="Paste a new threat description here..."
+                value={analysisInput}
+                onChange={e => setAnalysisInput(e.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                className="btn btn-primary w-full"
+                disabled={analysisLoading}
+              >
+                {analysisLoading ? 'Analyzing...' : 'Analyze'}
+              </button>
+            </form>
+            {analysisResult && (
+              <div className="mt-4 text-green-700 font-bold">
+                Predicted Category: {analysisResult}
+              </div>
+            )}
+            {analysisError && (
+              <div className="mt-4 text-red-600">
+                {analysisError}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Live Activity Feed */}
+      <div className="card mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Live Activity Feed</h3>
+        <ul className="max-h-48 overflow-y-auto">
+          {activityFeed.length === 0 && <li className="text-gray-500">No activity yet.</li>}
+          {activityFeed.map((item, idx) => (
+            <li key={idx} className="py-1 border-b border-gray-200 dark:border-gray-700">
+              <span className="font-bold">{item.predicted_category}</span> — {item.description}
+              <span className="text-xs text-gray-400 ml-2">{new Date(item.timestamp).toLocaleTimeString()}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Summary Cards */}

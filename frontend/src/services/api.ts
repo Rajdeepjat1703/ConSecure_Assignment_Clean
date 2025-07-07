@@ -10,6 +10,16 @@ const api = axios.create({
   },
 });
 
+// Add JWT token to all requests if present
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const threatApi = {
   // Get all threats with pagination and filtering
   getThreats: async (filters: ThreatFilters = {}): Promise<ThreatsResponse> => {
@@ -40,6 +50,14 @@ export const threatApi = {
   getAllCategories: async (): Promise<string[]> => {
     const response = await api.get('/threats/categories');
     return response.data;
+  },
+
+  // Auth endpoints
+  login: async (email: string, password: string) => {
+    return api.post('/auth/login', { email, password });
+  },
+  register: async (email: string, password: string) => {
+    return api.post('/auth/register', { email, password });
   },
 };
 

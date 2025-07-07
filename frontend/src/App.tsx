@@ -3,11 +3,17 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { Shield, List, BarChart3, Sun, Moon } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import Threats from './components/Threats';
+import Login from './components/Login';
+import Register from './components/Register';
+import ProtectedRoute from './components/ProtectedRoute';
+import Logout from './components/Logout';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { token } = useAuth();
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: BarChart3 },
@@ -45,7 +51,15 @@ const Navigation: React.FC = () => {
                 </Link>
               );
             })}
-            
+            {/* Show Logout button if logged in */}
+            {token && (
+              <Link
+                to="/logout"
+                className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+              >
+                Logout
+              </Link>
+            )}
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -72,8 +86,11 @@ const AppContent: React.FC = () => {
         <Navigation />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/threats" element={<Threats />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/logout" element={<Logout />} />
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/threats" element={<ProtectedRoute><Threats /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>
@@ -84,7 +101,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 };
