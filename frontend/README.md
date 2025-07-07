@@ -10,6 +10,7 @@ This is the frontend for the Threat Dashboard project—a modern, responsive Rea
 - **Live Activity Feed:** Real-time updates when any user analyzes a threat (WebSocket-powered).
 - **Authentication:** Register, login, and logout with JWT-based session management.
 - **Responsive UI:** Works on desktop and mobile.
+- **Toggel Theme UI.** you can toggle in dark mode and light mode
 
 ## Technology Stack
 - **React** (with Hooks and functional components)
@@ -52,8 +53,22 @@ You can paste screenshots or images of the following UI components here:
 
 Example:
 ```
-![Dashboard Screenshot](./screenshots/dashboard.png)
-![Threats List Screenshot](./screenshots/threats.png)
+Dashboard page image
+![image](https://github.com/user-attachments/assets/fc70a6d3-3b4e-4e4c-aae2-efa227eea238)
+
+Threat page image
+![image](https://github.com/user-attachments/assets/65eb34df-dc14-48ee-91bd-103e30f28ed1)
+
+And we view the the threat indiviually
+![image](https://github.com/user-attachments/assets/1b3f11aa-8c99-47de-bd44-4ccb05b4dfca)
+![image](https://github.com/user-attachments/assets/93cb515e-3eaf-4bf8-a46c-611bce006099)
+
+
+also You can toggel between dark mode and ligh mode
+
+
+
+
 ```
 
 ## How It Works
