@@ -108,6 +108,7 @@ npm test
 ## Docker Commands
 - **Start all services:**
   ```sh
+  cd backend
   docker-compose up --build
   ```
 - **Stop all services:**
